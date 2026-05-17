@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './components/Auth';
 import { PersonasIndex } from './pages/gestionar_personas/index';
 import { PersonaForm } from './pages/gestionar_personas/formulario';
 import { PersonaDetail } from './pages/gestionar_personas/ver';
+import { Consultas } from './pages/consultas';
 
 function AppContent() {
   const location = useLocation();
@@ -29,6 +30,7 @@ function AppContent() {
         <Route path="/personas/crear" element={<PrivateRoute><PersonaForm /></PrivateRoute>} />
         <Route path="/personas/editar/:id" element={<PrivateRoute><PersonaForm /></PrivateRoute>} />
         <Route path="/personas/ver/:id" element={<PrivateRoute><PersonaDetail /></PrivateRoute>} />
+        <Route path="/consultas" element={<PrivateRoute><Consultas /></PrivateRoute>} />
       </Routes>
     </div>
   );

@@ -68,3 +68,9 @@ export const updatePersona = async (id: number, data: FormData | Partial<Persona
 export const deletePersona = async (id: number): Promise<void> => {
   await axios.delete(`${URL}${id}/`);
 };
+
+
+export const getRelatives = async (id: number, relation: string): Promise<Persona[]> => {
+  const response = await axios.get(`${URL}${id}/${relation}/`);
+  return response.data;
+};

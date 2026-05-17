@@ -50,6 +50,9 @@ export function Navegación() {
             <Link to={'/personas'} className="text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-colors font-medium">
               Gestionar personas
             </Link>
+             <Link to={'/consultas'} className="text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-colors font-medium">
+              Consultas
+            </Link>
             <Link to={'/perfil'} className="text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-colors font-medium">
               Perfil
             </Link>
