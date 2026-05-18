@@ -13,6 +13,8 @@ Django Rest Framework en backend y React, Typescript y Tailwindcss en frontend
 
 <img src="img/árbol.png" alt="Árbol">
 
+<img src="img/detalles_persona2.png" alt="Ventana de detalles de una persona">
+
 
 **Gestionar Personas**
 

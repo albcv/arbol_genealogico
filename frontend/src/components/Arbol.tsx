@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AsyncSelect from 'react-select/async';
 import { getPersonas, getPersonaById } from '../api/personas';
 import type { Persona } from '../api/personas';
+import { DetallesPersona } from './detalles_persona'; // Importación del modal
 
 // ----------------------------------------------------------------------
 // Tipos y constantes
@@ -314,6 +315,8 @@ export const Arbol: React.FC = () => {
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const svgRef = useRef<SVGSVGElement | null>(null);
   const redrawTimeout = useRef<number | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Persona | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Cargar ancestros cuando se selecciona una persona
   useEffect(() => {
@@ -485,6 +488,16 @@ export const Arbol: React.FC = () => {
     setSelectedPersonId(option ? option.value : null);
   };
 
+  const handleCardClick = (persona: Persona) => {
+    setSelectedPerson(persona);
+    setShowDetails(true);
+  };
+
+  const handleCloseDetails = () => {
+    setShowDetails(false);
+    setSelectedPerson(null);
+  };
+
   if (loading) return <div className="text-center py-8 text-white font-bold text-2xl">Cargando árbol...</div>;
   if (error) return <div className="text-center py-8 text-red-600">Error: {error}</div>;
 
@@ -545,8 +558,9 @@ export const Arbol: React.FC = () => {
                       <div
                         key={id}
                         ref={el => setCardRef(id, el)}
-                        className="absolute bg-white rounded-xl shadow-md hover:shadow-lg border border-gray-200"
-                        style={{ width: CARD_WIDTH, left: leftPos, top: pos.y, transform: 'translateX(-50%)', cursor: 'default' }}
+                        onClick={() => handleCardClick(persona)}
+                        className="absolute bg-white rounded-xl shadow-md hover:shadow-lg border border-gray-200 cursor-pointer transition-transform hover:scale-150 hover:border-gray-600"
+                        style={{ width: CARD_WIDTH, left: leftPos, top: pos.y, transform: 'translateX(-50%)' }}
                       >
                         <div className="flex flex-col items-center p-3">
                           <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center mb-2">
@@ -574,6 +588,7 @@ export const Arbol: React.FC = () => {
           );
         })()
       )}
+      {showDetails && <DetallesPersona persona={selectedPerson} onClose={handleCloseDetails} />}
     </div>
   );
 };
