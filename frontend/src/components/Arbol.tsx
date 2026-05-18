@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AsyncSelect from 'react-select/async';
 import { getPersonas, getPersonaById } from '../api/personas';
 import type { Persona } from '../api/personas';
-import { DetallesPersona } from './detalles_persona'; // Importación del modal
+import { DetallesPersona } from './detalles_persona';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 // ----------------------------------------------------------------------
 // Tipos y constantes
@@ -62,7 +64,7 @@ const calcularNiveles = (mapa: Map<number, NodoArbol>): Map<number, number> => {
   const nivel = new Map<number, number>();
   for (const [id, nodo] of mapa) {
     const tienePadre = (nodo.persona.padre && mapa.has(nodo.persona.padre)) ||
-                       (nodo.persona.madre && mapa.has(nodo.persona.madre));
+      (nodo.persona.madre && mapa.has(nodo.persona.madre));
     if (!tienePadre) nivel.set(id, 0);
   }
   let changed = true;
@@ -274,7 +276,6 @@ const fetchPersonAndAncestors = async (personaId: number): Promise<Persona[]> =>
       const persona = await getPersonaById(currentId);
       personasMap.set(currentId, persona);
 
-      // Normalizar IDs de padre y madre
       const padreId = normalizeId(persona.padre);
       const madreId = normalizeId(persona.madre);
 
@@ -317,6 +318,7 @@ export const Arbol: React.FC = () => {
   const redrawTimeout = useRef<number | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Persona | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
   // Cargar ancestros cuando se selecciona una persona
   useEffect(() => {
@@ -498,12 +500,102 @@ export const Arbol: React.FC = () => {
     setSelectedPerson(null);
   };
 
+  // Exportar como PNG
+  const exportAsPNG = async () => {
+    if (!containerRef.current) return;
+    try {
+      // Esperar a que todas las imágenes carguen
+      const images = Array.from(containerRef.current.querySelectorAll('img'));
+      await Promise.all(images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
+      }));
+
+      const canvas = await html2canvas(containerRef.current, {
+        scale: 2,
+        backgroundColor: '#f0fdf4',
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `arbol_genealogico_${selectedPersonId || 'completo'}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch (err) {
+      console.error('Error exportando PNG:', err);
+      alert('No se pudo exportar la imagen.');
+    }
+  };
+
+  const exportAsPDF = async () => {
+    if (!containerRef.current) return;
+    try {
+      // Esperar a que todas las imágenes carguen
+      const images = Array.from(containerRef.current.querySelectorAll('img'));
+      await Promise.all(images.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
+      }));
+
+      const canvas = await html2canvas(containerRef.current, {
+        scale: 2,
+        backgroundColor: '#f0fdf4',
+        useCORS: true,        
+        logging: false,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width, canvas.height],
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`arbol_genealogico_${selectedPersonId || 'completo'}.pdf`);
+    } catch (err) {
+      console.error('Error exportando PDF:', err);
+      alert('No se pudo exportar el PDF.');
+    }
+  };
+
   if (loading) return <div className="text-center py-8 text-white font-bold text-2xl">Cargando árbol...</div>;
   if (error) return <div className="text-center py-8 text-red-600">Error: {error}</div>;
 
   return (
     <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl shadow-xl p-6 overflow-auto">
-      <h2 className="text-2xl font-bold text-green-800 mb-4 text-center">Árbol Genealógico</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold text-green-800">Árbol Genealógico 🌳</h2>
+        <div className="relative">
+          <button
+            onClick={() => setExportMenuOpen(!exportMenuOpen)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+          >
+            📤 Exportar <span className="text-sm">▼</span>
+          </button>
+          {exportMenuOpen && (
+            <div className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-10 border border-gray-200">
+              <button
+                onClick={() => {
+                  exportAsPNG();
+                  setExportMenuOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-t-lg"
+              >
+                📷 PNG
+              </button>
+              <button
+                onClick={() => {
+                  exportAsPDF();
+                  setExportMenuOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-b-lg"
+              >
+                📄 PDF
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="mb-6 flex justify-center">
         <AsyncSelect
           className="w-80"
@@ -515,11 +607,10 @@ export const Arbol: React.FC = () => {
           value={
             selectedPersonId && personas.find(p => p.id === selectedPersonId)
               ? {
-                  value: selectedPersonId,
-                  label: `${personas.find(p => p.id === selectedPersonId)!.nombre} ${
-                    personas.find(p => p.id === selectedPersonId)!.apellido1 || ''
+                value: selectedPersonId,
+                label: `${personas.find(p => p.id === selectedPersonId)!.nombre} ${personas.find(p => p.id === selectedPersonId)!.apellido1 || ''
                   }`.trim(),
-                }
+              }
               : null
           }
         />
