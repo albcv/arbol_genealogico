@@ -1,10 +1,8 @@
 from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from django.shortcuts import get_object_or_404
@@ -12,7 +10,8 @@ from ..serializers import UserSerializer
 from ..authentication import CookieTokenAuthentication
 
 @api_view(['POST'])
-@csrf_exempt
+@authentication_classes([])          
+@permission_classes([AllowAny])      
 def login(request):
     user = get_object_or_404(User, username=request.data['username'])
     if not user.check_password(request.data['password']):
@@ -28,12 +27,10 @@ def login(request):
         httponly=True,
         secure=not settings.DEBUG,
         samesite='Lax',
-        max_age=60 * 60 * 24 * 7,  # 7 días
+        max_age=60 * 60 * 24 * 7,
     )
     get_token(request)  
     return response
-
-
 
 @api_view(['POST'])
 @authentication_classes([CookieTokenAuthentication])
@@ -74,8 +71,8 @@ def cambiar_password(request):
     return Response({"message": "Contraseña cambiada"}, status=200)
 
 @api_view(['GET'])
-@csrf_exempt
+@authentication_classes([])          
+@permission_classes([AllowAny])      
 def set_csrf_cookie(request):
     get_token(request)
     return Response({"detail": "CSRF cookie establecida"}, status=200)
-
