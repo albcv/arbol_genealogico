@@ -1,5 +1,5 @@
 import { useForm, Controller, useWatch } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import Select from 'react-select';
@@ -54,6 +54,7 @@ export function CrudForm({
   const params = useParams();
   const isEditing = !!params.id;
   const formValues = useWatch({ control });
+  const submitAction = useRef<'save' | 'saveAndContinue'>('save');
 
   useEffect(() => {
     if (isEditing) {
@@ -73,7 +74,8 @@ export function CrudForm({
     }
   };
 
-  const onSubmit = handleSubmit(async (data) => {
+  // Función común para guardar (crear o actualizar)
+  const performSave = async (data: any, stay: boolean) => {
     const processedData = { ...data };
 
     fields.forEach(field => {
@@ -103,7 +105,7 @@ export function CrudForm({
       }
     });
 
-    // Limpiar cadenas vacías que no deberían ir al backend
+    // Limpiar cadenas vacías
     Object.keys(processedData).forEach(key => {
       if (processedData[key] === '') processedData[key] = null;
     });
@@ -113,12 +115,18 @@ export function CrudForm({
         console.log(`📤 Enviando actualización de ${itemName} (ID: ${params.id!}):`, processedData);
         await updateItem(params.id!, processedData);
         toast.success(`${itemName} actualizado correctamente`);
+        navigate(basePath);
       } else {
         console.log(`📤 Enviando creación de ${itemName}:`, processedData);
         await createItem(processedData);
         toast.success(`${itemName} creado correctamente`);
+        if (stay) {
+          // Guardar y seguir creando -> recargar la página (como el admin de Django)
+          setTimeout(() => window.location.reload(), 500);
+        } else {
+          navigate(basePath);
+        }
       }
-      navigate(basePath);
     } catch (err: unknown) {
       console.error(`Error guardando ${itemName}:`, err);
       const error = err as AxiosError;
@@ -145,7 +153,20 @@ export function CrudForm({
         toast.error('Error al guardar (sin respuesta del servidor)');
       }
     }
+  };
+
+  const onSubmit = handleSubmit(async (data) => {
+    const stay = submitAction.current === 'saveAndContinue';
+    await performSave(data, stay);
   });
+
+  const handleSave = () => {
+    submitAction.current = 'save';
+  };
+
+  const handleSaveAndContinue = () => {
+    submitAction.current = 'saveAndContinue';
+  };
 
   const handleDelete = async () => {
     if (window.confirm(`¿Está seguro de eliminar este ${itemName}?`)) {
@@ -282,12 +303,32 @@ export function CrudForm({
                       Eliminar
                     </button>
                   )}
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-red-600 text-white rounded-lg hover:from-yellow-700 hover:to-red-700 transition-all"
-                  >
-                    {isEditing ? 'Actualizar' : 'Guardar'}
-                  </button>
+                  {isEditing ? (
+                    <button
+                      type="submit"
+                      onClick={handleSave}
+                      className="px-6 py-3 bg-gradient-to-r from-green-900 to-green-700 text-white rounded-lg hover:from-green-900 hover:to-black transition-all"
+                    >
+                      Actualizar
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="submit"
+                        onClick={handleSave}
+                        className="px-6 py-3 bg-gradient-to-r from-green-900 to-green-700 text-white rounded-lg hover:from-green-900 hover:to-black transition-all"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="submit"
+                        onClick={handleSaveAndContinue}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                      >
+                        Guardar y seguir creando
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </form>

@@ -35,7 +35,6 @@ export function PersonasIndex() {
   const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados para filtros adicionales
   const [filters, setFilters] = useState({
     nombre: '',
     apellido1: '',
@@ -44,7 +43,6 @@ export function PersonasIndex() {
     year_nacimiento_max: '',
   });
 
-  // Función para construir objeto de filtros
   const getFilterParams = () => {
     const params: any = { search: searchTerm };
     if (filters.nombre) params.nombre = filters.nombre;
@@ -105,10 +103,16 @@ export function PersonasIndex() {
     setCurrentPage(1);
   };
 
+  // Función para eliminar múltiples personas
+  const bulkDeleteItems = async (ids: number[]) => {
+    // Eliminar en paralelo con Promise.all
+    await Promise.all(ids.map(id => deletePersona(id)));
+  };
+
   return (
     <div className="min-h-screen bg-green-200 p-6">
       <div className="container mx-auto">
-        {/* Panel de filtros adicionales */}
+        {/* Panel de filtros (sin cambios) */}
         <div className="bg-white p-4 rounded-xl shadow-xl mb-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Filtros avanzados</h2>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -172,6 +176,7 @@ export function PersonasIndex() {
           onSearch={handleSearch}
           searchTerm={searchTerm}
           deleteItem={deletePersona}
+          bulkDeleteItems={bulkDeleteItems}   
           onRefresh={handleRefresh}
           columns={columns}
           basePath="/personas"

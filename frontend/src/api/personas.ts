@@ -74,3 +74,43 @@ export const getRelatives = async (id: number, relation: string): Promise<Person
   const response = await axios.get(`${URL}${id}/${relation}/`);
   return response.data;
 };
+
+export const getArbolHastaAbuelos = async (id: number): Promise<Persona[]> => {
+  const response = await axios.get(`${URL}${id}/arbol-hasta-abuelos/`);
+  return response.data; // array de Persona[]
+};
+
+
+
+export const getPersonasMasculinas = async (search: string = ''): Promise<Persona[]> => {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  const response = await axios.get(`${URL}masculinos/?${params.toString()}`);
+  return response.data;
+};
+
+
+export const getPersonasFemeninas = async (search: string = ''): Promise<Persona[]> => {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  const response = await axios.get(`${URL}femeninos/?${params.toString()}`);
+  return response.data;
+};
+
+// Búsqueda para padre 
+export const searchPadre = async (input: string): Promise<{ value: number; label: string }[]> => {
+  const data = await getPersonasMasculinas(input);
+  return data.map((p: Persona) => ({
+    value: p.id,
+    label: `${p.nombre} ${p.apellido1 || ''} ${p.apellido2 || ''}`.trim(),
+  }));
+};
+
+// Búsqueda para madre 
+export const searchMadre = async (input: string): Promise<{ value: number; label: string }[]> => {
+  const data = await getPersonasFemeninas(input);
+  return data.map((p: Persona) => ({
+    value: p.id,
+    label: `${p.nombre} ${p.apellido1 || ''} ${p.apellido2 || ''}`.trim(),
+  }));
+};

@@ -13,7 +13,7 @@ const EliminarIcon = () => <img src={eliminarImg} alt="eliminar" className="w-5 
 interface Column {
   key: string;
   label: string;
-  render?: (value: any, item: any) => React.ReactNode; // función opcional para renderizar la celda
+  render?: (value: any, item: any) => React.ReactNode;
 }
 
 interface CrudIndexProps {
@@ -25,6 +25,7 @@ interface CrudIndexProps {
   onSearch: (term: string) => void;
   searchTerm: string;
   deleteItem: (id: number) => Promise<any>;
+  bulkDeleteItems?: (ids: number[]) => Promise<any>; // nueva prop
   onRefresh: () => void;
   columns: Column[];
   basePath: string;
@@ -42,6 +43,7 @@ export function CrudIndex({
   onSearch,
   searchTerm,
   deleteItem,
+  bulkDeleteItems,
   onRefresh,
   columns,
   basePath,
@@ -51,6 +53,7 @@ export function CrudIndex({
 }: CrudIndexProps) {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState<string>(searchTerm || '');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setInputValue(searchTerm || '');
@@ -82,6 +85,45 @@ export function CrudIndex({
         toast.error(`Error al eliminar ${itemName}`);
       }
     }
+  };
+
+  // Eliminación masiva
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (window.confirm(`¿Está seguro de eliminar ${selectedIds.size} ${itemName}(s) seleccionados?`)) {
+      try {
+        if (bulkDeleteItems) {
+          await bulkDeleteItems(Array.from(selectedIds));
+        } else {
+          // Fallback: eliminar uno por uno en paralelo
+          await Promise.all(Array.from(selectedIds).map(id => deleteItem(id)));
+        }
+        toast.success(`${selectedIds.size} ${itemName}(s) eliminado(s) correctamente`);
+        setSelectedIds(new Set());
+        onRefresh();
+      } catch (error) {
+        console.error(`Error eliminando ${itemName}s:`, error);
+        toast.error(`Error al eliminar los ${itemName}s seleccionados`);
+      }
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === items.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map(item => item.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
   };
 
   const getPageNumbers = (): (number | string)[] => {
@@ -134,9 +176,9 @@ export function CrudIndex({
           </button>
         </div>
 
-        {/* Barra de búsqueda */}
-        <div className="mb-6 flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[250px] flex gap-2">
+        {/* Barra de búsqueda y botón de eliminación masiva */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-1 min-w-[250px] gap-2">
             <input
               type="text"
               placeholder="Buscar..."
@@ -166,13 +208,23 @@ export function CrudIndex({
               </svg>
             </button>
           </div>
-          <div className="text-gray-800 font-medium bg-white px-4 py-2 rounded-lg shadow">
-            {items.length} {items.length === 1 ? 'registro' : 'registros'} mostrados
-            {totalCount !== undefined && items.length !== totalCount && (
-              <span className="text-gray-700 text-sm ml-1">
-                (de {totalCount} total)
-              </span>
+          <div className="flex items-center gap-4">
+            {selectedIds.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Eliminar seleccionados ({selectedIds.size})
+              </button>
             )}
+            <div className="text-gray-800 font-medium bg-white px-4 py-2 rounded-lg shadow">
+              {items.length} {items.length === 1 ? 'registro' : 'registros'} mostrados
+              {totalCount !== undefined && items.length !== totalCount && (
+                <span className="text-gray-700 text-sm ml-1">
+                  (de {totalCount} total)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -181,6 +233,14 @@ export function CrudIndex({
           <table className="w-full">
             <thead className="bg-gradient-to-r from-green-800 to-green-600 text-white">
               <tr>
+                <th className="px-6 py-3 text-center w-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === items.length && items.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                </th>
                 {columns.map(col => (
                   <th key={col.key} className="px-6 py-3 text-left">{col.label}</th>
                 ))}
@@ -190,6 +250,14 @@ export function CrudIndex({
             <tbody className="divide-y divide-gray-200">
               {items.map(item => (
                 <tr key={item.id} className="hover:bg-green-50">
+                  <td className="px-6 py-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(item.id)}
+                      onChange={() => toggleSelect(item.id)}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                  </td>
                   {columns.map(col => (
                     <td key={col.key} className="px-6 py-4 text-gray-800">
                       {col.render ? col.render(item[col.key], item) : item[col.key]}

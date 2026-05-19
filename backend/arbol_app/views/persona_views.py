@@ -195,3 +195,73 @@ class PersonaViewSet(viewsets.ModelViewSet):
         sobrinos = Persona.objects.filter(id__in=sobrinos_ids)
         serializer = PersonaSerializer(sobrinos, many=True)
         return Response(serializer.data)
+
+
+      
+    @action(detail=True, methods=['get'], url_path='arbol-hasta-abuelos')
+    def arbol_hasta_abuelos(self, request, pk=None):
+        """
+        Devuelve un array de personas que incluye:
+        - la persona solicitada,
+        - sus padres,
+        - sus abuelos (paternos y maternos).
+        No incluye bisabuelos ni otras generaciones.
+        """
+        persona = self.get_object()
+        ids = {persona.id}
+        
+        # Añadir padres
+        if persona.padre:
+            ids.add(persona.padre.id)
+        if persona.madre:
+            ids.add(persona.madre.id)
+        
+        # Añadir abuelos (padres de los padres)
+        for parent in [persona.padre, persona.madre]:
+            if parent:
+                if parent.padre:
+                    ids.add(parent.padre.id)
+                if parent.madre:
+                    ids.add(parent.madre.id)
+        
+        # Obtener todas las personas de una sola consulta
+        personas = Persona.objects.filter(id__in=ids).select_related('padre', 'madre')
+        serializer = PersonaSerializer(personas, many=True)
+        return Response(serializer.data)
+
+
+    @action(detail=False, methods=['get'], url_path='masculinos')
+    def masculinos(self, request):
+        """
+        Devuelve todas las personas de sexo masculino (M).
+        Permite búsqueda por nombre/apellido con parámetro 'search'.
+        """
+        queryset = Persona.objects.filter(sexo='M')
+        search = request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(nombre__icontains=search) |
+                Q(apellido1__icontains=search) |
+                Q(apellido2__icontains=search)
+            )
+        queryset = queryset.order_by('nombre')
+        serializer = PersonaSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='femeninos')
+    def femeninos(self, request):
+        """
+        Devuelve todas las personas de sexo femenino (F).
+        Permite búsqueda por nombre/apellido con parámetro 'search'.
+        """
+        queryset = Persona.objects.filter(sexo='F')
+        search = request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(nombre__icontains=search) |
+                Q(apellido1__icontains=search) |
+                Q(apellido2__icontains=search)
+            )
+        queryset = queryset.order_by('nombre')
+        serializer = PersonaSerializer(queryset, many=True)
+        return Response(serializer.data)

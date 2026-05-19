@@ -6,7 +6,8 @@ import {
   createPersona,
   updatePersona,
   deletePersona,
-  searchPersonas,
+  searchPadre,   
+  searchMadre,
 } from '../../api/personas';
 
 const sexoOptions = [
@@ -30,7 +31,7 @@ const fields: Field[] = [
     label: 'Padre',
     type: 'autoselect',
     required: false,
-    loadOptions: searchPersonas,
+    loadOptions: searchPadre, 
     placeholder: 'Buscar persona...',
   },
   {
@@ -38,7 +39,7 @@ const fields: Field[] = [
     label: 'Madre',
     type: 'autoselect',
     required: false,
-    loadOptions: searchPersonas,
+    loadOptions: searchMadre,
     placeholder: 'Buscar persona...',
   },
 ];

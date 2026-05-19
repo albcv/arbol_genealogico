@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import AsyncSelect from 'react-select/async';
-import { getPersonas, getPersonaById } from '../api/personas';
+import { getArbolHastaAbuelos } from '../api/personas';
+import { getPersonas} from '../api/personas';
 import type { Persona } from '../api/personas';
 import { DetallesPersona } from './detalles_persona';
 import html2canvas from 'html2canvas';
@@ -249,59 +250,7 @@ const asignarPosicionesConBloques = (mapa: Map<number, NodoArbol>, nivelMap: Map
   return posCentradas;
 };
 
-// ----------------------------------------------------------------------
-// Función auxiliar para normalizar IDs de padre/madre
-// ----------------------------------------------------------------------
-const normalizeId = (parent: any): number | null => {
-  if (!parent) return null;
-  if (typeof parent === 'object' && parent !== null) return parent.id;
-  if (typeof parent === 'number') return parent;
-  return null;
-};
 
-// ----------------------------------------------------------------------
-// Función para obtener una persona y todos sus ancestros hasta abuelos
-// ----------------------------------------------------------------------
-const fetchPersonAndAncestors = async (personaId: number): Promise<Persona[]> => {
-  const personasMap = new Map<number, Persona>();
-  const idsToFetch = new Set<number>();
-  idsToFetch.add(personaId);
-
-  while (idsToFetch.size > 0) {
-    const currentId = idsToFetch.values().next().value as number;
-    idsToFetch.delete(currentId);
-    if (personasMap.has(currentId)) continue;
-
-    try {
-      const persona = await getPersonaById(currentId);
-      personasMap.set(currentId, persona);
-
-      const padreId = normalizeId(persona.padre);
-      const madreId = normalizeId(persona.madre);
-
-      if (padreId !== null) {
-        if (!personasMap.has(padreId)) idsToFetch.add(padreId);
-        const padre = await getPersonaById(padreId);
-        const abueloPId = normalizeId(padre.padre);
-        const abuelaPId = normalizeId(padre.madre);
-        if (abueloPId !== null && !personasMap.has(abueloPId)) idsToFetch.add(abueloPId);
-        if (abuelaPId !== null && !personasMap.has(abuelaPId)) idsToFetch.add(abuelaPId);
-      }
-
-      if (madreId !== null) {
-        if (!personasMap.has(madreId)) idsToFetch.add(madreId);
-        const madre = await getPersonaById(madreId);
-        const abueloMId = normalizeId(madre.padre);
-        const abuelaMId = normalizeId(madre.madre);
-        if (abueloMId !== null && !personasMap.has(abueloMId)) idsToFetch.add(abueloMId);
-        if (abuelaMId !== null && !personasMap.has(abuelaMId)) idsToFetch.add(abuelaMId);
-      }
-    } catch (error) {
-      console.error(`Error fetching persona ${currentId}:`, error);
-    }
-  }
-  return Array.from(personasMap.values());
-};
 
 // ----------------------------------------------------------------------
 // Componente principal
@@ -330,7 +279,7 @@ export const Arbol: React.FC = () => {
     const loadTree = async () => {
       setLoading(true);
       try {
-        const ancestors = await fetchPersonAndAncestors(selectedPersonId);
+        const ancestors = await getArbolHastaAbuelos(selectedPersonId);
         setPersonas(ancestors);
       } catch (err: any) {
         setError(err.message);
@@ -598,7 +547,7 @@ export const Arbol: React.FC = () => {
 
       <div className="mb-6 flex justify-center">
         <AsyncSelect
-          className="w-80"
+          className="w-80 placeholder-slate-700"
           loadOptions={loadOptions}
           onChange={handlePersonChange}
           placeholder="Buscar persona..."
