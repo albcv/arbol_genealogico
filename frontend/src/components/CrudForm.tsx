@@ -122,6 +122,7 @@ export function CrudForm({
         toast.success(`${itemName} creado correctamente`);
         if (stay) {
           // Guardar y seguir creando -> recargar la página (como el admin de Django)
+          window.scrollTo(0, 0); 
           setTimeout(() => window.location.reload(), 500);
         } else {
           navigate(basePath);
