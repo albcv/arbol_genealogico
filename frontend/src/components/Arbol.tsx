@@ -26,11 +26,8 @@ const HORIZONTAL_GAP = 24;
 const BLOCK_GAP = 48;
 const RECT_HEIGHT = 30;
 
-const COLOR_PALETTE = [
-  '#3B82F6', '#10B981', '#F59E0B', '#06B6D4', '#84CC16',
-  '#F97316', '#14B8A6', '#0EA5E9', '#F43F5E', '#2563EB',
-  '#059669', '#D97706', '#0891B2', '#65A30D', '#EA580C',
-];
+// Color fijo para todas las conexiones
+const CONNECTION_COLOR = '#080'; 
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -39,15 +36,6 @@ const getFotoUrl = (foto: string | undefined | null): string => {
   if (foto.startsWith('http')) return foto;
   const baseSinApp = API_BASE.replace('/app', '');
   return `${baseSinApp}${foto}`;
-};
-
-const getColorFromKey = (key: string): string => {
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    hash = ((hash << 5) - hash) + key.charCodeAt(i);
-    hash |= 0;
-  }
-  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
 };
 
 const construirGrafo = (personas: Persona[]): Map<number, NodoArbol> => {
@@ -125,7 +113,7 @@ const obtenerParejasYSolteros = (personas: Persona[], nivelMap: Map<number, numb
   const involucrados = new Set<number>();
   personas.forEach(persona => {
     const pId = persona.padre, mId = persona.madre;
-    if (pId && mId) {
+    if (pId && mId && nivelMap.has(pId) && nivelMap.has(mId)) {
       const key = `${Math.min(pId, mId)}-${Math.max(pId, mId)}`;
       if (!parejasMap.has(key)) {
         parejasMap.set(key, { padreId: pId, madreId: mId, hijos: [], nivel: Math.max(nivelMap.get(pId)!, nivelMap.get(mId)!) });
@@ -250,8 +238,6 @@ const asignarPosicionesConBloques = (mapa: Map<number, NodoArbol>, nivelMap: Map
   return posCentradas;
 };
 
-
-
 // ----------------------------------------------------------------------
 // Componente principal
 // ----------------------------------------------------------------------
@@ -325,7 +311,7 @@ export const Arbol: React.FC = () => {
       const padreDiv = cardRefs.current.get(grupo.padreId);
       const madreDiv = cardRefs.current.get(grupo.madreId);
       if (!padreDiv || !madreDiv) continue;
-      const color = getColorFromKey(key);
+      const color = CONNECTION_COLOR; // ← color fijo
       const padreRect = padreDiv.getBoundingClientRect();
       const madreRect = madreDiv.getBoundingClientRect();
       const padreX = padreRect.left + padreRect.width / 2 - containerRect.left;

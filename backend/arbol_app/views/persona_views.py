@@ -13,7 +13,7 @@ from ..filters import PersonaFilter
 class PersonaViewSet(viewsets.ModelViewSet):
     authentication_classes = [CookieTokenAuthentication]
     permission_classes = [IsAuthenticated]
-    queryset = Persona.objects.all().order_by('id')
+    queryset = Persona.objects.all().order_by('apellido1')
     serializer_class = PersonaSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = PersonaFilter

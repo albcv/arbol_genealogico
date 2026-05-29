@@ -1,3 +1,5 @@
+//App.tsx
+
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Login } from './pages/login';
 import { Inicio } from './pages/inicio';
@@ -14,7 +16,7 @@ function AppContent() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
 
-  const hideNavigationRoutes = ['/', '/login', '/registro'];
+  const hideNavigationRoutes = ['/', '/login'];
   const shouldShowNavigation = !hideNavigationRoutes.includes(location.pathname) && isAuthenticated;
 
   return (
